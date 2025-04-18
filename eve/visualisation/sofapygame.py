@@ -15,7 +15,7 @@ class SofaPygame(Visualisation):
         intervention: Intervention,
         interim_target: Optional[InterimTarget] = None,
         display_size: Tuple[float, float] = (600, 860),
-        color: Tuple[float, float, float, float] = (0, 0, 0, 0),
+        color: Tuple[float, float, float, float] = (0.5, 0.5, 0.5, 0.2),
     ) -> None:
         self.intervention = intervention
         self.interim_target = interim_target or InterimTargetDummy()

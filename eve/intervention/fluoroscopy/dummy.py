@@ -37,8 +37,8 @@ class FluoroscopyDummy(Fluoroscopy):
 
         self.tracking3d = None
         self.tracking2d = None
-        self.device_trackings3d = None
-        self.device_trackings2d = None
+        self.instrument_trackings3d = None
+        self.instrument_trackings2d = None
 
 
 class FluoroscopyDummyWithVesselTree(Fluoroscopy):
@@ -54,7 +54,7 @@ class FluoroscopyDummyWithVesselTree(Fluoroscopy):
         self.vessel_tree = vessel_tree
         self.image_frequency = image_frequency
         self.image_rot_zx = image_rot_zx or [0, 0]
-        self.image_center = image_center or [0,0,0]
+        self.image_center = image_center or [0, 0, 0]
         self.field_of_view = field_of_view
 
         self.image_space = image_space
@@ -63,8 +63,8 @@ class FluoroscopyDummyWithVesselTree(Fluoroscopy):
 
         self.tracking3d = None
         self.tracking2d = None
-        self.device_trackings3d = None
-        self.device_trackings2d = None
+        self.instrument_trackings3d = None
+        self.instrument_trackings2d = None
 
     @property
     def tracking3d_space(self) -> gym.spaces.Box:

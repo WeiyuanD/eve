@@ -2,7 +2,7 @@ from ..intervention import Intervention
 from .tracking2d import Tracking2D
 
 
-class TrackingDevice2D(Tracking2D):
+class TrackingInstrument2D(Tracking2D):
     def __init__(
         self,
         intervention: Intervention,
@@ -16,5 +16,5 @@ class TrackingDevice2D(Tracking2D):
         self.device_idx = device_idx
 
     def step(self) -> None:
-        tracking = self.intervention.fluoroscopy.device_trackings2d[self.device_idx]
+        tracking = self.intervention.fluoroscopy.instrument_trackings2d[self.device_idx]
         self.obs = self._evenly_distributed_tracking(tracking)

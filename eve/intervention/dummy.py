@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import gymnasium as gym
 
-from .device import Device
+from .instrument import Instrument
 from .intervention import Intervention
 from .target import Target
 from .vesseltree import VesselTree
@@ -12,21 +12,21 @@ from .fluoroscopy import Fluoroscopy
 class InterventionDummy(Intervention):
     def __init__(
         self,
-        devices: List[Device],
+        instruments: List[Instrument],
         vessel_tree: VesselTree,
         fluoroscopy: Fluoroscopy,
         target: Target,
         normalize_action: bool = False,
     ) -> None:
-        self.devices = devices
+        self.instruments = instruments
         self.vessel_tree = vessel_tree
         self.fluoroscopy = fluoroscopy
         self.target = target
         self.normalize_action = normalize_action
 
-        self.last_action = np.zeros((len(self.devices), 2), dtype=np.float32)
+        self.last_action = np.zeros((len(self.instruments), 2), dtype=np.float32)
         self.velocity_limits = np.array(
-            [device.velocity_limit for device in self.devices]
+            [instrument.velocity_limit for instrument in self.instruments]
         )
 
         if self.normalize_action:
@@ -36,12 +36,14 @@ class InterventionDummy(Intervention):
             space = gym.spaces.Box(low=-self.velocity_limits, high=self.velocity_limits)
         self.action_space = space
 
-        self.device_lengths_maximum = [device.length for device in self.devices]
-        self.device_diameters = [
-            device.sofa_device.radius * 2 for device in self.devices
+        self.instrument_lengths_maximum = [
+            instrument.length for instrument in self.instruments
         ]
-        self.device_lengths_inserted = [0.0 for _ in devices]
-        self.device_rotations = [0.0 for _ in devices]
+        self.instrument_diameters = [
+            instrument.tip_section.diameter_outer for instrument in self.instruments
+        ]
+        self.instrument_lengths_inserted = [0.0 for _ in instruments]
+        self.instrument_rotations = [0.0 for _ in instruments]
 
         self._np_random = np.random.default_rng()
 
@@ -75,8 +77,6 @@ class InterventionDummy(Intervention):
         target_seed = None if seed is None else self._np_random.integers(0, 2**31)
         self.target.reset(episode_number, target_seed)
 
-    def reset_devices(self) -> None:
-        ...
+    def reset_instruments(self) -> None: ...
 
-    def close(self):
-        ...
+    def close(self): ...

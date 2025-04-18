@@ -20,14 +20,12 @@ class Fluoroscopy(EveObject):
     tracking2d_space_episode: gym.spaces.Box
     tracking3d: np.ndarray
     tracking2d: np.ndarray
-    device_trackings3d: Optional[List[np.ndarray]]
-    device_trackings2d: Optional[List[np.ndarray]]
+    instrument_trackings3d: Optional[List[np.ndarray]]
+    instrument_trackings2d: Optional[List[np.ndarray]]
 
-    def step(self) -> None:
-        ...
+    def step(self) -> None: ...
 
-    def reset(self, episode_nr: int = 0) -> None:
-        ...
+    def reset(self, episode_nr: int = 0) -> None: ...
 
     def get_reset_state(self) -> Dict[str, Any]:
         state = {
@@ -43,8 +41,8 @@ class Fluoroscopy(EveObject):
             "tracking3d_space_episode": self.tracking3d_space_episode,
             "tracking3d": self.tracking3d,
             "tracking2d": self.tracking2d,
-            "device_trackings3d": self.device_trackings3d,
-            "device_trackings2d": self.device_trackings2d,
+            "instrument_trackings3d": self.instrument_trackings3d,
+            "instrument_trackings2d": self.instrument_trackings2d,
         }
         return deepcopy(state)
 
@@ -57,8 +55,8 @@ class Fluoroscopy(EveObject):
             "image": self.image,
             "tracking3d": self.tracking3d,
             "tracking2d": self.tracking2d,
-            "device_trackings3d": self.device_trackings3d,
-            "device_trackings2d": self.device_trackings2d,
+            "instrument_trackings3d": self.instrument_trackings3d,
+            "instrument_trackings2d": self.instrument_trackings2d,
         }
         return deepcopy(state)
 

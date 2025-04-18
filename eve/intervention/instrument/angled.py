@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from typing import Optional, Tuple, Union
 
 import numpy as np
-from .device import (
-    Device,
+from .instrument import (
+    Instrument,
     StraightSection,
     SpireSection,
     MeshSection,
@@ -13,7 +13,7 @@ from .device import (
 
 
 @dataclass
-class JShaped(Device):
+class Angled(Instrument):
 
     name: str = "guidewire"
     velocity_limit: Tuple[float, float] = (50, 3.14)

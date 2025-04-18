@@ -32,9 +32,9 @@ def save_line_mesh_to_file(point_cloud: np.ndarray, file: str):
         f.writelines(connections)
 
 
-def save_line_mesh(device_point_cloud: np.ndarray) -> str:
+def save_line_mesh(instrument_point_cloud: np.ndarray) -> str:
     mesh_path = get_temp_mesh_path("endovascular_instrument")
-    save_line_mesh_to_file(device_point_cloud, mesh_path)
+    save_line_mesh_to_file(instrument_point_cloud, mesh_path)
     return mesh_path
 
 

@@ -96,7 +96,7 @@ make install
 Endovascular environments are created in the following order (from top to bottom):
 ```
     ├── Vesseltree
-    ├── Device
+    ├── Instrument
     ├── Fluoroscopy
     ├── Simulation
     ├── Target
@@ -133,11 +133,11 @@ The intervention class bundles all components necessary for the simulation of an
 - **Vesseltree:**
 Provides a mesh model of the vesseltree and the insertion point for the simulation and additional information (e.g. centerlines). 
 
-- **Device:**
-Provides information about the device shape to the information. Can be either a parameterized standard shape or a freeform device. 
+- **Instrument:**
+Provides information about the instrument shape to the information. Can be either a parameterized standard shape or a freeform instrument. 
 
 - **Fluoroscopy:**
-Provides feedback of the device in the vesseltree. Either as simulated x-ray or as tracking coordinates, corresponding to a tracking algorithm applied to the x-ray images. 
+Provides feedback of the instrument in the vesseltree. Either as simulated x-ray or as tracking coordinates, corresponding to a tracking algorithm applied to the x-ray images. 
 
 - **Target:**
 Provides a navigation target for the intervention. 

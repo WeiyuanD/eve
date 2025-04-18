@@ -14,7 +14,7 @@ vessel_tree = eve.intervention.vesseltree.AorticArch(
 )
 
 
-device = eve.intervention.device.JShaped()
+instrument = eve.intervention.instrument.Angled()
 
 simulation = eve.intervention.simulation.SofaBeamAdapter(friction=0.001)
 
@@ -35,14 +35,14 @@ target = eve.intervention.target.CenterlineRandom(
 
 intervention = eve.intervention.MonoPlaneStatic(
     vessel_tree=vessel_tree,
-    devices=[device],
+    instruments=[instrument],
     simulation=simulation,
     fluoroscopy=fluoroscopy,
     target=target,
 )
 
 
-start = eve.start.MaxDeviceLength(intervention=intervention, max_length=500)
+start = eve.start.InsertionPoint(intervention=intervention)
 pathfinder = eve.pathfinder.BruteForceBFS(intervention=intervention)
 
 
@@ -143,7 +143,7 @@ while True:
     obs, reward, terminal, truncation, info = env.step(action=action)
     env.render()
     n_steps += 1
-    print(obs)
+    # print(obs)
     if keys_pressed[pygame.K_RETURN]:
         env.reset()
         n_steps = 0

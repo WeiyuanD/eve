@@ -7,8 +7,8 @@ import eve
 import eve.visualisation
 
 vessel_tree = eve.intervention.vesseltree.AorticArch()
-device = eve.intervention.device.JShaped(beams_per_mm_straight=0.5)
-device2 = eve.intervention.device.Simmons3Bends()
+instrument = eve.intervention.instrument.Angled()
+instrument_2 = eve.intervention.instrument.Simmons3Bends()
 
 simulation = eve.intervention.simulation.SofaBeamAdapter()
 
@@ -29,14 +29,14 @@ target = eve.intervention.target.CenterlineRandom(
 
 intervention = eve.intervention.MonoPlaneStatic(
     vessel_tree=vessel_tree,
-    devices=[device, device2],
+    instruments=[instrument, instrument_2],
     simulation=simulation,
     fluoroscopy=fluoroscopy,
     target=target,
 )
 
 
-start = eve.start.MaxDeviceLength(intervention=intervention, max_length=500)
+start = eve.start.MaxInstrumentLength(intervention=intervention, max_length=500)
 pathfinder = eve.pathfinder.BruteForceBFS(intervention=intervention)
 
 

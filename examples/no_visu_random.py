@@ -8,7 +8,7 @@ if __name__ == "__main__":
     vessel_tree = eve.intervention.vesseltree.AorticArch(
         eve.intervention.vesseltree.ArchType.VII
     )
-    device = eve.intervention.device.JShaped()
+    instrument = eve.intervention.instrument.Angled()
 
     simulation = eve.intervention.simulation.SofaBeamAdapter()
 
@@ -28,13 +28,13 @@ if __name__ == "__main__":
 
     intervention = eve.intervention.MonoPlaneStatic(
         vessel_tree=vessel_tree,
-        devices=[device],
+        instruments=[instrument],
         simulation=simulation,
         fluoroscopy=fluoroscopy,
         target=target,
     )
 
-    start = eve.start.MaxDeviceLength(intervention=intervention, max_length=500)
+    start = eve.start.MaxInstrumentLength(intervention=intervention, max_length=500)
     pathfinder = eve.pathfinder.BruteForceBFS(intervention=intervention)
 
     position = eve.observation.Tracking2D(intervention=intervention, n_points=5)

@@ -7,8 +7,8 @@ import eve
 import eve.visualisation
 
 vessel_tree = eve.intervention.vesseltree.AorticArch()
-device = eve.intervention.device.JShaped(beams_per_mm_straight=0.5)
-device2 = eve.intervention.device.JShaped(
+instrument = eve.intervention.instrument.Angled()
+instrument2 = eve.intervention.instrument.Angled(
     name="cath",
     visu_edges_per_mm=0.5,
     tip_outer_diameter=1.2,
@@ -36,14 +36,14 @@ target = eve.intervention.target.CenterlineRandom(
 
 intervention = eve.intervention.MonoPlaneStatic(
     vessel_tree=vessel_tree,
-    devices=[device, device2],
+    instruments=[instrument, instrument2],
     simulation=simulation,
     fluoroscopy=fluoroscopy,
     target=target,
 )
 
 
-start = eve.start.MaxDeviceLength(intervention=intervention, max_length=500)
+start = eve.start.MaxInstrumentLength(intervention=intervention, max_length=500)
 pathfinder = eve.pathfinder.BruteForceBFS(intervention=intervention)
 
 

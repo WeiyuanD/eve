@@ -12,14 +12,14 @@ class Rotations(Observation):
 
     @property
     def space(self) -> gym.spaces.Box:
-        n_rotations = len(self.intervention.devices)
+        n_rotations = len(self.intervention.instruments)
         shape = (n_rotations, 2)
         low = -np.ones(shape, dtype=np.float32)
         high = np.ones(shape, dtype=np.float32)
         return gym.spaces.Box(low=low, high=high, dtype=np.float32)
 
     def step(self) -> None:
-        rotation_data = self.intervention.device_rotations
+        rotation_data = self.intervention.instrument_rotations
         state = [[sin(rotation), cos(rotation)] for rotation in rotation_data]
         self.obs = np.array(state, dtype=np.float32)
 

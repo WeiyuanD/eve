@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Optional, Tuple, Union
 
-from .device import (
-    Device,
+from .instrument import (
+    Instrument,
     StraightSection,
     MeshSection,
     StraightMeshElement,
@@ -11,7 +11,7 @@ from .device import (
 
 
 @dataclass
-class Straight(Device):
+class Straight(Instrument):
 
     name: str = "guidewire"
     velocity_limit: Tuple[float, float] = (50, 3.14)

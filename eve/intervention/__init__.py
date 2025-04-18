@@ -1,5 +1,5 @@
 from . import (
-    device,
+    instrument,
     fluoroscopy,
     simulation,
     target,

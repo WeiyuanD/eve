@@ -41,8 +41,8 @@ class Pillow(SimulatedFluoroscopy):
         return self._image
 
     def step(self):
-        trackings = self.device_trackings2d
-        diameters = [device.diameter for device in self.simulation.devices]
+        trackings = self.instrument_trackings2d
+        diameters = [instrument.diameter for instrument in self.simulation.]
         # Noise is around colour 128.
         noise_image = Image.effect_noise(size=self.image_size, sigma=5)
         physics_image = self._render(trackings, diameters)

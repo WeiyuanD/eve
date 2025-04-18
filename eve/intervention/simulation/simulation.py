@@ -3,7 +3,7 @@ from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 from ...util import EveObject
-from ..device import Device
+from ..instrument import Instrument
 
 
 class Simulation(EveObject, ABC):
@@ -11,38 +11,30 @@ class Simulation(EveObject, ABC):
 
     @property
     @abstractmethod
-    def dof_positions(self) -> np.ndarray:
-        ...
+    def dof_positions(self) -> np.ndarray: ...
 
     @property
     @abstractmethod
-    def inserted_lengths(self) -> List[float]:
-        ...
+    def inserted_lengths(self) -> List[float]: ...
 
     @property
     @abstractmethod
-    def rotations(self) -> List[float]:
-        ...
+    def rotations(self) -> List[float]: ...
 
     @abstractmethod
-    def close(self):
-        ...
+    def close(self): ...
 
     @abstractmethod
-    def step(self, action: np.ndarray, duration: float):
-        ...
+    def step(self, action: np.ndarray, duration: float): ...
 
     @abstractmethod
-    def reset_devices(self):
-        ...
+    def reset_instruments(self): ...
 
     @abstractmethod
-    def add_interim_targets(self, positions: List[Tuple[float, float, float]]):
-        ...
+    def add_interim_targets(self, positions: List[Tuple[float, float, float]]): ...
 
     @abstractmethod
-    def remove_interim_target(self, interim_target):
-        ...
+    def remove_interim_target(self, interim_target): ...
 
     @abstractmethod
     def reset(
@@ -50,13 +42,12 @@ class Simulation(EveObject, ABC):
         insertion_point,
         insertion_direction,
         mesh_path,
-        devices: List[Device],
+        instruments: List[Instrument],
         coords_high: Optional[Tuple[float, float, float]] = None,
         coords_low: Optional[Tuple[float, float, float]] = None,
         vessel_visual_path: Optional[str] = None,
         seed: int = None,
-    ):
-        ...
+    ): ...
 
     def get_reset_state(self) -> Dict[str, Any]:
         state = {
@@ -74,7 +65,7 @@ class Simulation(EveObject, ABC):
 class SimulationDummy(Simulation):
     def __init__(self) -> None:
         self.simulation_error = False
-        self._n_devices = 1
+        self._n_instruments = 1
 
     @property
     def dof_positions(self) -> np.ndarray:
@@ -82,36 +73,31 @@ class SimulationDummy(Simulation):
 
     @property
     def inserted_lengths(self) -> List[float]:
-        return [0.0] * self._n_devices
+        return [0.0] * self._n_instruments
 
     @property
     def rotations(self) -> List[float]:
-        return [0.0] * self._n_devices
+        return [0.0] * self._n_instruments
 
-    def close(self):
-        ...
+    def close(self): ...
 
-    def step(self, action: np.ndarray, duration: float):
-        ...
+    def step(self, action: np.ndarray, duration: float): ...
 
-    def reset_devices(self):
-        ...
+    def reset_instruments(self): ...
 
-    def add_interim_targets(self, positions: List[Tuple[float, float, float]]):
-        ...
+    def add_interim_targets(self, positions: List[Tuple[float, float, float]]): ...
 
-    def remove_interim_target(self, interim_target):
-        ...
+    def remove_interim_target(self, interim_target): ...
 
     def reset(
         self,
         insertion_point,
         insertion_direction,
         mesh_path,
-        devices: List[Device],
+        instruments: List[Instrument],
         coords_high: Optional[Tuple[float, float, float]] = None,
         coords_low: Optional[Tuple[float, float, float]] = None,
         vessel_visual_path: Optional[str] = None,
         seed: int = None,
     ):
-        self._n_devices = len(devices)
+        self._n_instruments = len(instruments)

@@ -14,12 +14,14 @@ class InsertionLengths(Observation):
 
     @property
     def space(self) -> gym.spaces.Box:
-        high = np.array(self.intervention.device_lengths_maximum, dtype=np.float32)
+        high = np.array(self.intervention.instrument_lengths_maximum, dtype=np.float32)
         low = np.zeros_like(high)
         return gym.spaces.Box(high=high, low=low, dtype=np.float32)
 
     def step(self) -> None:
-        self.obs = np.array(self.intervention.device_lengths_inserted, dtype=np.float32)
+        self.obs = np.array(
+            self.intervention.instrument_lengths_inserted, dtype=np.float32
+        )
 
     def reset(self, episode_nr: int = 0) -> None:
         self.step()

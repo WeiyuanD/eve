@@ -13,7 +13,7 @@ from .util.meshing import (
 
 
 @dataclass
-class DeviceSection:
+class InstrumentSection:
     length: float
     diameter_outer: float
     diameter_inner: float
@@ -32,11 +32,11 @@ class DeviceSection:
 
 
 @dataclass
-class StraightSection(DeviceSection): ...
+class StraightSection(InstrumentSection): ...
 
 
 @dataclass
-class SpireSection(DeviceSection):
+class SpireSection(InstrumentSection):
     spire_radius: float
     spire_height: float
     spire_angle_deg: float
@@ -52,11 +52,11 @@ class SpireSection(DeviceSection):
         length = 2 * np.pi * r * np.sqrt(1 + curve**2) * self.spire_angle_deg / 360
         self.length = length.tolist()
 
-        DeviceSection.__post_init__(self)
+        InstrumentSection.__post_init__(self)
 
 
 @dataclass
-class MeshSection(DeviceSection):
+class MeshSection(InstrumentSection):
     mesh_elements: List[Union[StraightMeshElement, ArcMeshElement]]
 
     length: float = field(init=False, repr=False, default=None)
@@ -66,11 +66,11 @@ class MeshSection(DeviceSection):
         point_cloud, length = create_shape_point_cloud(self.mesh_elements)
         self.mesh_path = save_line_mesh(point_cloud)
         self.length = length
-        DeviceSection.__post_init__(self)
+        InstrumentSection.__post_init__(self)
 
 
 @dataclass
-class Device(EveObject):
+class Instrument(EveObject):
 
     name: str
     velocity_limit: Tuple[float, float]

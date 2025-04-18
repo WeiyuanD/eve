@@ -4,7 +4,7 @@ import numpy as np
 import pygame
 
 
-class JoyOneDevice:
+class JoyOneInstrument:
     def __init__(
         self, action_limits: Tuple[float, float] = (25, 3.14), joystick_id: int = 0
     ) -> None:
@@ -20,7 +20,7 @@ class JoyOneDevice:
         return np.array((trans0, rot0))
 
 
-class KeyboardOneDevice:
+class KeyboardOneInstrument:
     def __init__(self, actions: Tuple[float, float] = (25, 3.14)) -> None:
         pygame.init()
         self.actions = actions
@@ -41,7 +41,7 @@ class KeyboardOneDevice:
         return np.array((trans, rot))
 
 
-class KeyboardTwoDevice:
+class KeyboardTwoInstruments:
     def __init__(
         self,
         actions: Tuple[Tuple[float, float], Tuple[float, float]] = (

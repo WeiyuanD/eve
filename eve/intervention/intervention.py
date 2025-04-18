@@ -10,25 +10,24 @@ from .target import Target
 from .vesseltree import VesselTree
 from .fluoroscopy import Fluoroscopy, SimulatedFluoroscopy
 from .simulation import Simulation, SimulationMP
-from .device import Device
+from .instrument import Instrument
 
 
 class Intervention(EveObject, ABC):
-    devices: List[Device]
+    instruments: List[Instrument]
     vessel_tree: VesselTree
     fluoroscopy: Fluoroscopy
     target: Target
     normalize_action: bool = False
     last_action: np.ndarray
-    device_lengths_inserted: List[float]
-    device_rotations: List[float]
-    device_lengths_maximum: List[float]
-    device_diameters: List[float]
+    instrument_lengths_inserted: List[float]
+    instrument_rotations: List[float]
+    instrument_lengths_maximum: List[float]
+    instrument_diameters: List[float]
     action_space: gym.spaces.Box
 
     @abstractmethod
-    def step(self, action: np.ndarray) -> None:
-        ...
+    def step(self, action: np.ndarray) -> None: ...
 
     @abstractmethod
     def reset(
@@ -36,24 +35,21 @@ class Intervention(EveObject, ABC):
         episode_number: int,
         seed: Optional[int] = None,
         options: Optional[Dict[str, Any]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @abstractmethod
-    def close(self) -> None:
-        ...
+    def close(self) -> None: ...
 
     @abstractmethod
-    def reset_devices(self) -> None:
-        ...
+    def reset_instruments(self) -> None: ...
 
     def get_reset_state(self) -> Dict[str, Any]:
         state = {
-            "devices": self.devices,
-            "device_lengths_inserted": self.device_lengths_inserted,
-            "device_rotations": self.device_rotations,
-            "device_lengths_maximum": self.device_lengths_maximum,
-            "device_diameters": self.device_diameters,
+            "instruments": self.instruments,
+            "instrument_lengths_inserted": self.instrument_lengths_inserted,
+            "instrument_rotations": self.instrument_rotations,
+            "instrument_lengths_maximum": self.instrument_lengths_maximum,
+            "instrument_diameters": self.instrument_diameters,
             "action_space": self.action_space,
             "last_action": self.last_action,
             "vessel_tree": self.vessel_tree.get_reset_state(),
@@ -64,8 +60,8 @@ class Intervention(EveObject, ABC):
 
     def get_step_state(self) -> Dict[str, Any]:
         state = {
-            "device_lengths_inserted": self.device_lengths_inserted,
-            "device_rotations": self.device_rotations,
+            "instrument_lengths_inserted": self.instrument_lengths_inserted,
+            "instrument_rotations": self.instrument_rotations,
             "last_action": self.last_action,
             "vessel_tree": self.vessel_tree.get_step_state(),
             "target": self.target.get_step_state(),
@@ -77,7 +73,7 @@ class Intervention(EveObject, ABC):
 class SimulatedIntervention(Intervention, ABC):
     fluoroscopy: SimulatedFluoroscopy
     simulation: Simulation
-    stop_device_at_tree_end: bool = True
+    stop_instrument_at_tree_end: bool = True
 
     def make_mp(self, step_timeout: float = 2, restart_n_resets: int = 200):
         if isinstance(self.simulation, Simulation):
@@ -93,11 +89,11 @@ class SimulatedIntervention(Intervention, ABC):
 
     def get_reset_state(self) -> Dict[str, Any]:
         state = {
-            "devices": self.devices,
-            "device_lengths_inserted": self.device_lengths_inserted,
-            "device_rotations": self.device_rotations,
-            "device_lengths_maximum": self.device_lengths_maximum,
-            "device_diameters": self.device_diameters,
+            "instruments": self.instruments,
+            "instrument_lengths_inserted": self.instrument_lengths_inserted,
+            "instrument_rotations": self.instrument_rotations,
+            "instrument_lengths_maximum": self.instrument_lengths_maximum,
+            "instrument_diameters": self.instrument_diameters,
             "action_space": self.action_space,
             "last_action": self.last_action,
             "vessel_tree": self.vessel_tree.get_reset_state(),
@@ -109,8 +105,8 @@ class SimulatedIntervention(Intervention, ABC):
 
     def get_step_state(self) -> Dict[str, Any]:
         state = {
-            "device_lengths_inserted": self.device_lengths_inserted,
-            "device_rotations": self.device_rotations,
+            "instrument_lengths_inserted": self.instrument_lengths_inserted,
+            "instrument_rotations": self.instrument_rotations,
             "last_action": self.last_action,
             "vessel_tree": self.vessel_tree.get_step_state(),
             "simulation": self.simulation.get_step_state(),

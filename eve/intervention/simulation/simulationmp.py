@@ -3,7 +3,7 @@ import logging
 import queue
 import multiprocessing as mp
 import numpy as np
-from ..device import Device
+from ..instrument import Instrument
 from .simulation import Simulation
 
 
@@ -99,9 +99,9 @@ class SimulationMP(Simulation):
             self._get_result(timeout=self.step_timeout)
         self._update_properties()
 
-    def reset_devices(self):
+    def reset_instruments(self):
         if self._task_queue is not None:
-            self._task_queue.put(["reset_devices", [], {}])
+            self._task_queue.put(["reset_instruments", [], {}])
             self._get_result(timeout=self.step_timeout)
         self._update_properties()
 
@@ -110,7 +110,7 @@ class SimulationMP(Simulation):
         insertion_point,
         insertion_direction,
         mesh_path,
-        devices: List[Device],
+        instruments: List[Instrument],
         coords_high: Optional[Tuple[float, float, float]] = None,
         coords_low: Optional[Tuple[float, float, float]] = None,
         vessel_visual_path: Optional[str] = None,
@@ -134,7 +134,7 @@ class SimulationMP(Simulation):
                         insertion_point,
                         insertion_direction,
                         mesh_path,
-                        devices,
+                        instruments,
                         None,
                         None,
                         None,

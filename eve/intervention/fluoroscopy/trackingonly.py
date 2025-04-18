@@ -24,9 +24,9 @@ class TrackingOnly(SimulatedFluoroscopy):
         self.logger = logging.getLogger(self.__module__)
         self.simulation = simulation
         self.vessel_tree = vessel_tree
-        self.image_rot_zx = image_rot_zx or [0,0]
+        self.image_rot_zx = image_rot_zx or [0, 0]
         self.image_frequency = image_frequency
-        self.image_center = image_center or [0,0,0]
+        self.image_center = image_center or [0, 0, 0]
         self.field_of_view = field_of_view
 
     @property
@@ -89,7 +89,7 @@ class TrackingOnly(SimulatedFluoroscopy):
         return tracking3d_to_2d(self.tracking3d)
 
     @property
-    def device_trackings3d(self) -> List[np.ndarray]:
+    def instrument_trackings3d(self) -> List[np.ndarray]:
         position = self.tracking3d
         position = np.flip(position)
         point_diff = position[:-1] - position[1:]
@@ -98,10 +98,10 @@ class TrackingOnly(SimulatedFluoroscopy):
         inserted_lengths = self.simulation.inserted_lengths
 
         d_lengths = np.array(inserted_lengths)
-        n_devices = d_lengths.size
+        n_instruments = d_lengths.size
         n_dofs = cum_length.size
-        d_lengths = np.broadcast_to(d_lengths, (n_dofs, n_devices)).transpose()
-        cum_length = np.broadcast_to(cum_length, (n_devices, n_dofs))
+        d_lengths = np.broadcast_to(d_lengths, (n_dofs, n_instruments)).transpose()
+        cum_length = np.broadcast_to(cum_length, (n_instruments, n_dofs))
 
         diff = np.abs(cum_length - d_lengths)
         idxs = np.argmin(diff, axis=1)
@@ -110,7 +110,7 @@ class TrackingOnly(SimulatedFluoroscopy):
         return trackings
 
     @property
-    def device_trackings2d(self) -> List[np.ndarray]:
-        trackings_3d = self.device_trackings3d
+    def instrument_trackings2d(self) -> List[np.ndarray]:
+        trackings_3d = self.instrument_trackings3d
         trackings_2d = [tracking3d_to_2d(tracking) for tracking in trackings_3d]
         return trackings_2d

@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 import logging
 import numpy as np
 from .simulation import Simulation
-from ..device import Device, MeshSection, StraightSection, SpireSection
+from ..instrument import Instrument, MeshSection, StraightSection, SpireSection
 
 
 class SofaBeamAdapter(Simulation):
@@ -103,7 +103,7 @@ class SofaBeamAdapter(Simulation):
             self._sofa.Simulation.animate(self.root, self.root.dt.value)
         self._update_properties()
 
-    def reset_devices(self):
+    def reset_instruments(self):
         x_tip = self._instruments_combined.IRcontroller.xtip.value
         self._instruments_combined.IRcontroller.xtip.value = x_tip * 0.0
         tip_rot = self._instruments_combined.IRcontroller.rotationInstrument.value
@@ -118,7 +118,7 @@ class SofaBeamAdapter(Simulation):
         insertion_point,
         insertion_direction,
         mesh_path,
-        devices: List[Device],
+        instruments: List[Instrument],
         coords_high: Optional[Tuple[float, float, float]] = None,
         coords_low: Optional[Tuple[float, float, float]] = None,
         vessel_visual_path: Optional[str] = None,
@@ -151,8 +151,8 @@ class SofaBeamAdapter(Simulation):
             self._load_plugins()
             self._basic_setup(self.friction)
             self._add_vessel_tree(mesh_path=mesh_path)
-            self._add_devices(
-                devices=devices,
+            self._add_instruments(
+                instruments=instruments,
                 insertion_point=insertion_point,
                 insertion_direction=insertion_direction,
             )
@@ -163,7 +163,7 @@ class SofaBeamAdapter(Simulation):
                     coords_high,
                     self.target_size,
                     self.interim_target_size,
-                    devices=devices,
+                    instruments=instruments,
                     vessel_visual_path=vessel_visual_path,
                 )
             self._sofa.Simulation.init(self.root)
@@ -180,9 +180,9 @@ class SofaBeamAdapter(Simulation):
     def _update_properties(self) -> None:
         tracking = self._instruments_combined.DOFs.position.value[:, 0:3][::-1]
         if np.any(np.isnan(tracking[0])):
-            self.logger.warning("Tracking is NAN, resetting devices")
+            self.logger.warning("Tracking is NAN, resetting instruments")
             self.simulation_error = True
-            self.reset_devices()
+            self.reset_instruments()
             tracking = self._instruments_combined.DOFs.position.value[:, 0:3][::-1]
         self._dof_positions = deepcopy(tracking)
         self._inserted_lengths = deepcopy(
@@ -259,15 +259,17 @@ class SofaBeamAdapter(Simulation):
         vessel_object.addObject("LineCollisionModel", moving=False, simulated=False)
         self._vessel_object = vessel_object
 
-    def _add_devices(self, devices: List[Device], insertion_point, insertion_direction):
-        for device in devices:
+    def _add_instruments(
+        self, instruments: List[Instrument], insertion_point, insertion_direction
+    ):
+        for instrument in instruments:
 
-            topo_lines = self.root.addChild("topolines_" + device.name)
+            topo_lines = self.root.addChild("topolines_" + instrument.name)
             wire_materials = ""
 
-            if device.base_section is not None:
-                base_section = device.base_section
-                base_name = "base_section_" + device.name
+            if instrument.base_section is not None:
+                base_section = instrument.base_section
+                base_name = "base_section_" + instrument.name
                 topo_lines.addObject(
                     "RodStraightSection",
                     name=base_name,
@@ -281,15 +283,15 @@ class SofaBeamAdapter(Simulation):
                 )
                 wire_materials += "@" + base_name
 
-            tip_section = device.tip_section
-            tip_name = "tip_section_" + device.name
+            tip_section = instrument.tip_section
+            tip_name = "tip_section_" + instrument.name
 
             if isinstance(tip_section, MeshSection):
 
                 topo_lines.addObject(
                     "MeshOBJLoader",
                     filename=tip_section.mesh_path,
-                    name="loader_" + device.name,
+                    name="loader_" + instrument.name,
                 )
                 topo_lines.addObject(
                     "RodMeshSection",
@@ -300,7 +302,7 @@ class SofaBeamAdapter(Simulation):
                     radius=tip_section.diameter_outer / 2,
                     massDensity=tip_section.mass_density,
                     poissonRatio=tip_section.poisson_ratio,
-                    loader="@loader_" + device.name,
+                    loader="@loader_" + instrument.name,
                 )
             elif isinstance(tip_section, SpireSection):
                 topo_lines.addObject(
@@ -318,7 +320,7 @@ class SofaBeamAdapter(Simulation):
                 )
 
             elif isinstance(tip_section, StraightSection):
-                if device.base_section is not None:
+                if instrument.base_section is not None:
                     raise ValueError(
                         "Due to  bug in the SOFA BeamAdapter the tip_section can only be straight if no handle_section is used."
                     )
@@ -338,21 +340,23 @@ class SofaBeamAdapter(Simulation):
             wire_materials = wire_materials.strip()
             topo_lines.addObject(
                 "WireRestShape",
-                name="rest_shape_" + device.name,
+                name="rest_shape_" + instrument.name,
                 wireMaterials=wire_materials,
                 printLog=True,
                 template="Rigid3d",
             )
 
             topo_lines.addObject(
-                "EdgeSetTopologyContainer", name="meshLines_" + device.name
+                "EdgeSetTopologyContainer", name="meshLines_" + instrument.name
             )
             topo_lines.addObject("EdgeSetTopologyModifier", name="Modifier")
             topo_lines.addObject(
                 "EdgeSetGeometryAlgorithms", name="GeomAlgo", template="Rigid3d"
             )
             topo_lines.addObject(
-                "MechanicalObject", name="dofTopo_" + device.name, template="Rigid3d"
+                "MechanicalObject",
+                name="dofTopo_" + instrument.name,
+                template="Rigid3d",
             )
 
         instruments_combined = self.root.addChild("InstrumentCombined")
@@ -364,10 +368,10 @@ class SofaBeamAdapter(Simulation):
         )
 
         nx = 0
-        for device in devices:
-            if device.base_section is not None:
-                nx += device.base_section.collis_edges
-            nx += device.tip_section.collis_edges
+        for instrument in instruments:
+            if instrument.base_section is not None:
+                nx += instrument.base_section.collis_edges
+            nx += instrument.tip_section.collis_edges
 
         instruments_combined.addObject(
             "RegularGridTopology",
@@ -394,24 +398,24 @@ class SofaBeamAdapter(Simulation):
         rotations = []
         interpolations = ""
 
-        for device in devices:
+        for instrument in instruments:
             wire_rest_shape = (
-                "@../topolines_" + device.name + "/rest_shape_" + device.name
+                "@../topolines_" + instrument.name + "/rest_shape_" + instrument.name
             )
             instruments_combined.addObject(
                 "WireBeamInterpolation",
-                name="Interpol_" + device.name,
+                name="Interpol_" + instrument.name,
                 WireRestShape=wire_rest_shape,
                 printLog=False,
             )
             instruments_combined.addObject(
                 "AdaptiveBeamForceFieldAndMass",
-                name="ForceField_" + device.name,
-                interpolation="@Interpol_" + device.name,
+                name="ForceField_" + instrument.name,
+                interpolation="@Interpol_" + instrument.name,
             )
             x_tip.append(0.0)
             rotations.append(self._rng.random() * math.pi * 2)
-            interpolations += "Interpol_" + device.name + " "
+            interpolations += "Interpol_" + instrument.name + " "
         x_tip[0] += 0.1
         interpolations = interpolations[:-1]
 
@@ -441,7 +445,7 @@ class SofaBeamAdapter(Simulation):
         )
         instruments_combined.addObject(
             "RestShapeSpringsForceField",
-            name="deviceBaseSpring",
+            name="instrumentBaseSpring",
             points="@IRcontroller.indexFirstNode",
             angularStiffness=1e8,
             stiffness=1e8,
@@ -473,7 +477,7 @@ class SofaBeamAdapter(Simulation):
         coords_high: Tuple[float, float, float],
         target_size: float,
         interim_target_size: float,
-        devices: List[Device],
+        instruments: List[Instrument],
         vessel_visual_path: Optional[str] = None,
     ):
         coords_low = np.array(coords_low)
@@ -505,19 +509,19 @@ class SofaBeamAdapter(Simulation):
                 "BarycentricMapping", input="@../dofs", output="@Visu"
             )
 
-        # Devices
-        for device in devices:
-            visu_node = self._instruments_combined.addChild("Visu_" + device.name)
+        # Instruments
+        for instrument in instruments:
+            visu_node = self._instruments_combined.addChild("Visu_" + instrument.name)
             visu_node.activated = True
             visu_node.addObject(
                 "OglModel",
-                color=device.color,
-                quads="@../Container_" + device.name + ".quads",
+                color=instrument.color,
+                quads="@../Container_" + instrument.name + ".quads",
                 material="texture Ambient 1 0.2 0.2 0.2 0.0 Diffuse 1 1.0 1.0 1.0 1.0 Specular 1 1.0 1.0 1.0 1.0 Emissive 0 0.15 0.05 0.05 0.0 Shininess 1 20",
                 name="Visual",
             )
             visu_node.addObject(
-                "QuadSetTopologyContainer", name="Container_" + device.name
+                "QuadSetTopologyContainer", name="Container_" + instrument.name
             )
             visu_node.addObject("QuadSetTopologyModifier", name="Modifier")
             visu_node.addObject(
@@ -525,19 +529,21 @@ class SofaBeamAdapter(Simulation):
                 name="GeomAlgo",
                 template="Vec3d",
             )
-            mesh_lines = "@../../topolines_" + device.name + "/meshLines_" + device.name
+            mesh_lines = (
+                "@../../topolines_" + instrument.name + "/meshLines_" + instrument.name
+            )
             visu_node.addObject(
                 "Edge2QuadTopologicalMapping",
                 nbPointsOnEachCircle=10,
-                radius=device.tip_section.diameter_outer / 2,
+                radius=instrument.tip_section.diameter_outer / 2,
                 flipNormals="true",
                 input=mesh_lines,
-                output="@Container_" + device.name,
+                output="@Container_" + instrument.name,
             )
             visu_node.addObject(
                 "AdaptiveBeamMapping",
-                interpolation="@../Interpol_" + device.name,
-                name="VisuMap_" + device.name,
+                interpolation="@../Interpol_" + instrument.name,
+                name="VisuMap_" + instrument.name,
                 output="@Visual",
                 isMechanical="false",
                 input="@../DOFs",

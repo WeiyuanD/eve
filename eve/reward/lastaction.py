@@ -13,7 +13,7 @@ class LastAction(Reward):
 
         if self.action_idx > len(self.intervention.last_action) - 1:
             raise ValueError(
-                f"Speed Index needs to map to the speed Tuple of the device. speed_idx: {self.action_idx} cannot be used. It needs to be between 0 and {len(self.intervention.speed)-1} speed values available"
+                f"Speed Index needs to map to the speed Tuple of the instrument. speed_idx: {self.action_idx} cannot be used. It needs to be between 0 and {len(self.intervention.speed)-1} speed values available"
             )
 
     def step(self) -> None:

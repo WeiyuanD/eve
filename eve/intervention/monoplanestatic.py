@@ -8,7 +8,7 @@ from .target import Target
 from .vesseltree import VesselTree
 from .vesseltree.vesseltree import at_tree_end
 from .fluoroscopy import SimulatedFluoroscopy
-from .device import Device
+from .instrument import Instrument
 from .simulation import Simulation
 
 
@@ -16,44 +16,46 @@ class MonoPlaneStatic(SimulatedIntervention):
     def __init__(
         self,
         vessel_tree: VesselTree,
-        devices: List[Device],
+        instruments: List[Instrument],
         simulation: Simulation,
         fluoroscopy: SimulatedFluoroscopy,
         target: Target,
-        stop_device_at_tree_end: bool = True,
+        stop_instruments_at_tree_end: bool = True,
         normalize_action: bool = False,
     ) -> None:
         self.vessel_tree = vessel_tree
-        self.devices = devices
+        self.instruments = instruments
         self.target = target
         self.fluoroscopy = fluoroscopy
-        self.stop_device_at_tree_end = stop_device_at_tree_end
+        self.stop_instrument_at_tree_end = stop_instruments_at_tree_end
         self.normlaize_action = normalize_action
         self.simulation = simulation
         self._np_random = np.random.default_rng()
 
         self.velocity_limits = np.array(
-            [device.velocity_limit for device in self.devices]
+            [instrument.velocity_limit for instrument in self.instruments]
         )
         self.last_action = np.zeros_like(self.velocity_limits)
-        self._device_lengths_inserted = self.simulation.inserted_lengths
-        self._device_rotations = self.simulation.rotations
+        self._instrument_lengths_inserted = self.simulation.inserted_lengths
+        self._instrument_rotations = self.simulation.rotations
 
     @property
-    def device_lengths_inserted(self) -> List[float]:
+    def instrument_lengths_inserted(self) -> List[float]:
         return self.simulation.inserted_lengths
 
     @property
-    def device_rotations(self) -> List[float]:
+    def instrument_rotations(self) -> List[float]:
         return self.simulation.rotations
 
     @property
-    def device_lengths_maximum(self) -> List[float]:
-        return [device.length for device in self.devices]
+    def instrument_lengths_maximum(self) -> List[float]:
+        return [instrument.length for instrument in self.instruments]
 
     @property
-    def device_diameters(self) -> List[float]:
-        return [device.sofa_device.radius * 2 for device in self.devices]
+    def instrument_diameters(self) -> List[float]:
+        return [
+            instrument.tip_section.diameter_outer for instrument in self.instruments
+        ]
 
     @property
     def action_space(self) -> gym.spaces.Box:
@@ -76,15 +78,15 @@ class MonoPlaneStatic(SimulatedIntervention):
             action = np.clip(action, -self.velocity_limits, self.velocity_limits)
             self.last_action = action
 
-        inserted_lengths = np.array(self.device_lengths_inserted)
-        max_lengths = np.array(self.device_lengths_maximum)
+        inserted_lengths = np.array(self.instrument_lengths_inserted)
+        max_lengths = np.array(self.instrument_lengths_maximum)
         duration = 1 / self.fluoroscopy.image_frequency
         mask = np.where(inserted_lengths + action[:, 0] * duration <= 0.0)
         action[mask, 0] = 0.0
         mask = np.where(inserted_lengths + action[:, 0] * duration >= max_lengths)
         action[mask, 0] = 0.0
         tip = self.simulation.dof_positions[0]
-        if self.stop_device_at_tree_end and at_tree_end(tip, self.vessel_tree):
+        if self.stop_instrument_at_tree_end and at_tree_end(tip, self.vessel_tree):
             max_length = max(inserted_lengths)
             if max_length > 10:
                 dist_to_longest = -1 * inserted_lengths + max_length
@@ -113,7 +115,7 @@ class MonoPlaneStatic(SimulatedIntervention):
             insertion_point=ip_pos,
             insertion_direction=ip_dir,
             mesh_path=self.vessel_tree.mesh_path,
-            devices=self.devices,
+            instruments=self.instruments,
             coords_low=self.vessel_tree.coordinate_space.low,
             coords_high=self.vessel_tree.coordinate_space.high,
             vessel_visual_path=self.vessel_tree.visu_mesh_path,
@@ -124,11 +126,11 @@ class MonoPlaneStatic(SimulatedIntervention):
         self.last_action *= 0.0
 
     def _update_states(self):
-        self._device_lengths_inserted = self.simulation.inserted_lengths
-        self._device_rotations = self.simulation.rotations
+        self._instrument_lengths_inserted = self.simulation.inserted_lengths
+        self._instrument_rotations = self.simulation.rotations
 
     def close(self) -> None:
         self.simulation.close()
 
-    def reset_devices(self) -> None:
-        self.simulation.reset_devices()
+    def reset_instruments(self) -> None:
+        self.simulation.reset_instruments()

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional, Tuple, Union
-from .device import (
-    Device,
+from .instrument import (
+    Instrument,
     SpireSection,
     StraightMeshElement,
     ArcMeshElement,
@@ -11,7 +11,7 @@ from .device import (
 
 
 @dataclass
-class Simmons4Bends(Device):
+class Simmons4Bends(Instrument):
     name: str = "Simmons"
     velocity_limit: Tuple[float, float] = (50, 3.14)
 
