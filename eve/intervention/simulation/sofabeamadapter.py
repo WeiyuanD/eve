@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 import logging
 import numpy as np
 from .simulation import Simulation
-from ..device import Device
+from ..device import Device, MeshSection, StraightSection, SpireSection
 
 
 class SofaBeamAdapter(Simulation):
@@ -64,6 +64,13 @@ class SofaBeamAdapter(Simulation):
     def rotations(self) -> List[float]:
         return self._rotations
 
+    def quaternion_rotation_angle(self, q1, q2):
+        dot_product = np.dot(q1, q2)
+        dot_product = np.clip(dot_product, -1.0, 1.0)
+        theta = 2 * np.arccos(dot_product)
+        theta_degrees = np.degrees(theta)
+        return theta, theta_degrees
+
     def close(self):
         self._unload_simulation()
 
@@ -86,23 +93,23 @@ class SofaBeamAdapter(Simulation):
                     else:
                         action[max_id, 0] = 0.0
 
-            x_tip = self._instruments_combined.m_ircontroller.xtip
-            tip_rot = self._instruments_combined.m_ircontroller.rotationInstrument
+            x_tip = self._instruments_combined.IRcontroller.xtip
+            tip_rot = self._instruments_combined.IRcontroller.rotationInstrument
             for i in range(action.shape[0]):
                 x_tip[i] += float(action[i][0] * self.root.dt.value)
                 tip_rot[i] += float(action[i][1] * self.root.dt.value)
-            self._instruments_combined.m_ircontroller.xtip = x_tip
-            self._instruments_combined.m_ircontroller.rotationInstrument = tip_rot
+            self._instruments_combined.IRcontroller.xtip = x_tip
+            self._instruments_combined.IRcontroller.rotationInstrument = tip_rot
             self._sofa.Simulation.animate(self.root, self.root.dt.value)
         self._update_properties()
 
     def reset_devices(self):
-        x = self._instruments_combined.m_ircontroller.xtip.value
-        self._instruments_combined.m_ircontroller.xtip.value = x * 0.0
-        ri = self._instruments_combined.m_ircontroller.rotationInstrument.value
-        ri = self._rng.random(ri.shape) * 2 * np.pi
-        self._instruments_combined.m_ircontroller.rotationInstrument.value = ri
-        self._instruments_combined.m_ircontroller.indexFirstNode.value = 0
+        x_tip = self._instruments_combined.IRcontroller.xtip.value
+        self._instruments_combined.IRcontroller.xtip.value = x_tip * 0.0
+        tip_rot = self._instruments_combined.IRcontroller.rotationInstrument.value
+        tip_rot = self._rng.random(tip_rot.shape) * 2 * np.pi
+        self._instruments_combined.IRcontroller.rotationInstrument.value = tip_rot
+        self._instruments_combined.IRcontroller.indexFirstNode.value = 0
         self._sofa.Simulation.reset(self.root)
         self._update_properties()
 
@@ -159,7 +166,6 @@ class SofaBeamAdapter(Simulation):
                     devices=devices,
                     vessel_visual_path=vessel_visual_path,
                 )
-
             self._sofa.Simulation.init(self.root)
             self._insertion_point = insertion_point
             self._insertion_direction = insertion_direction
@@ -180,10 +186,10 @@ class SofaBeamAdapter(Simulation):
             tracking = self._instruments_combined.DOFs.position.value[:, 0:3][::-1]
         self._dof_positions = deepcopy(tracking)
         self._inserted_lengths = deepcopy(
-            self._instruments_combined.m_ircontroller.xtip.value
+            self._instruments_combined.IRcontroller.xtip.value
         )
         self._rotations = deepcopy(
-            self._instruments_combined.m_ircontroller.rotationInstrument.value
+            self._instruments_combined.IRcontroller.rotationInstrument.value
         )
 
     def _load_plugins(self):
@@ -193,17 +199,29 @@ class SofaBeamAdapter(Simulation):
             BeamAdapter\
             Sofa.Component.AnimationLoop\
             Sofa.Component.Collision.Detection.Algorithm\
-            Sofa.Component.Collision.Detection.Intersection\
-            Sofa.Component.LinearSolver.Direct\
+            Sofa.Component.Collision.Detection.Intersection \
+            Sofa.Component.Collision.Geometry\
+            Sofa.Component.Collision.Response.Contact\
+            Sofa.Component.Constraint.Lagrangian.Correction \
+            Sofa.Component.Constraint.Lagrangian.Solver \
+            Sofa.Component.Constraint.Projective \
             Sofa.Component.IO.Mesh\
+            Sofa.Component.LinearSolver.Direct\
+            Sofa.Component.Mapping.Linear\
             Sofa.Component.ODESolver.Backward\
-            Sofa.Component.Constraint.Lagrangian.Correction\
-            Sofa.Component.Topology.Mapping",
+            Sofa.Component.SolidMechanics.Spring\
+            Sofa.Component.StateContainer \
+            Sofa.Component.Topology.Container.Constant\
+            Sofa.Component.Topology.Container.Dynamic\
+            Sofa.Component.Topology.Container.Grid\
+            Sofa.Component.Topology.Mapping\
+            Sofa.Component.Visual\
+            Sofa.Component.Mapping.NonLinear",
         )
 
     def _basic_setup(self, friction: float):
         self.root.addObject("FreeMotionAnimationLoop")
-        self.root.addObject("DefaultPipeline", draw="0", depth="6", verbose="1")
+        self.root.addObject("CollisionPipeline", draw="0", depth="6", verbose="1")
         self.root.addObject("BruteForceBroadPhase")
         self.root.addObject("BVHNarrowPhase")
         self.root.addObject(
@@ -213,9 +231,7 @@ class SofaBeamAdapter(Simulation):
             angleCone=0.02,
             name="localmindistance",
         )
-        self.root.addObject(
-            "DefaultContactManager", response="FrictionContactConstraint"
-        )
+        self.root.addObject("CollisionResponse", response="FrictionContactConstraint")
         self.root.addObject(
             "LCPConstraintSolver",
             mu=friction,
@@ -228,7 +244,7 @@ class SofaBeamAdapter(Simulation):
     def _add_vessel_tree(self, mesh_path):
         vessel_object = self.root.addChild("vesselTree")
         vessel_object.addObject(
-            "MeshObjLoader",
+            "MeshOBJLoader",
             filename=mesh_path,
             flipNormals=False,
             name="meshLoader",
@@ -245,36 +261,89 @@ class SofaBeamAdapter(Simulation):
 
     def _add_devices(self, devices: List[Device], insertion_point, insertion_direction):
         for device in devices:
-            sofa_device = device.sofa_device
+
             topo_lines = self.root.addChild("topolines_" + device.name)
-            if not sofa_device.is_a_procedural_shape:
+            wire_materials = ""
+
+            if device.base_section is not None:
+                base_section = device.base_section
+                base_name = "base_section_" + device.name
                 topo_lines.addObject(
-                    "MeshObjLoader",
-                    filename=device.sofa_device.mesh_path,
-                    name="loader",
+                    "RodStraightSection",
+                    name=base_name,
+                    youngModulus=base_section.young_modulus,
+                    nbEdgesCollis=base_section.collis_edges,
+                    nbEdgesVisu=base_section.visu_edges,
+                    length=base_section.length,
+                    radius=base_section.diameter_outer / 2,
+                    massDensity=base_section.mass_density,
+                    poissonRatio=base_section.poisson_ratio,
                 )
+                wire_materials += "@" + base_name
+
+            tip_section = device.tip_section
+            tip_name = "tip_section_" + device.name
+
+            if isinstance(tip_section, MeshSection):
+
+                topo_lines.addObject(
+                    "MeshOBJLoader",
+                    filename=tip_section.mesh_path,
+                    name="loader_" + device.name,
+                )
+                topo_lines.addObject(
+                    "RodMeshSection",
+                    name=tip_name,
+                    youngModulus=tip_section.young_modulus,
+                    nbEdgesCollis=tip_section.collis_edges,
+                    nbEdgesVisu=tip_section.visu_edges,
+                    radius=tip_section.diameter_outer / 2,
+                    massDensity=tip_section.mass_density,
+                    poissonRatio=tip_section.poisson_ratio,
+                    loader="@loader_" + device.name,
+                )
+            elif isinstance(tip_section, SpireSection):
+                topo_lines.addObject(
+                    "RodSpireSection",
+                    name=tip_name,
+                    youngModulus=tip_section.young_modulus,
+                    nbEdgesCollis=tip_section.collis_edges,
+                    nbEdgesVisu=tip_section.visu_edges,
+                    length=tip_section.length,
+                    spireDiameter=tip_section.spire_radius * 2,
+                    spireHeight=tip_section.spire_height,
+                    radius=tip_section.diameter_outer / 2,
+                    massDensity=tip_section.mass_density,
+                    poissonRatio=tip_section.poisson_ratio,
+                )
+
+            elif isinstance(tip_section, StraightSection):
+                if device.base_section is not None:
+                    raise ValueError(
+                        "Due to  bug in the SOFA BeamAdapter the tip_section can only be straight if no handle_section is used."
+                    )
+                topo_lines.addObject(
+                    "RodStraightSection",
+                    name=tip_name,
+                    youngModulus=tip_section.young_modulus,
+                    nbEdgesCollis=tip_section.collis_edges,
+                    nbEdgesVisu=tip_section.visu_edges,
+                    length=tip_section.length,
+                    radius=tip_section.diameter_outer / 2,
+                    massDensity=tip_section.mass_density,
+                    poissonRatio=tip_section.poisson_ratio,
+                )
+
+            wire_materials += " @" + tip_name
+            wire_materials = wire_materials.strip()
             topo_lines.addObject(
                 "WireRestShape",
                 name="rest_shape_" + device.name,
-                isAProceduralShape=sofa_device.is_a_procedural_shape,
-                straightLength=sofa_device.straight_length,
-                length=sofa_device.length,
-                spireDiameter=sofa_device.spire_diameter,
-                radiusExtremity=sofa_device.radius_extremity,
-                youngModulusExtremity=sofa_device.young_modulus_extremity,
-                massDensityExtremity=sofa_device.mass_density_extremity,
-                radius=sofa_device.radius,
-                youngModulus=sofa_device.young_modulus,
-                massDensity=sofa_device.mass_density,
-                poissonRatio=sofa_device.poisson_ratio,
-                keyPoints=sofa_device.key_points,
-                densityOfBeams=sofa_device.density_of_beams,
-                numEdgesCollis=sofa_device.num_edges_collis,
-                numEdges=sofa_device.num_edges,
-                spireHeight=sofa_device.spire_height,
+                wireMaterials=wire_materials,
                 printLog=True,
                 template="Rigid3d",
             )
+
             topo_lines.addObject(
                 "EdgeSetTopologyContainer", name="meshLines_" + device.name
             )
@@ -293,9 +362,12 @@ class SofaBeamAdapter(Simulation):
         instruments_combined.addObject(
             "BTDLinearSolver", verification=False, subpartSolve=False, verbose=False
         )
+
         nx = 0
         for device in devices:
-            nx = sum([nx, sum(device.sofa_device.density_of_beams)])
+            if device.base_section is not None:
+                nx += device.base_section.collis_edges
+            nx += device.tip_section.collis_edges
 
         instruments_combined.addObject(
             "RegularGridTopology",
@@ -317,6 +389,7 @@ class SofaBeamAdapter(Simulation):
             name="DOFs",
             template="Rigid3d",
         )
+
         x_tip = []
         rotations = []
         interpolations = ""
@@ -329,13 +402,11 @@ class SofaBeamAdapter(Simulation):
                 "WireBeamInterpolation",
                 name="Interpol_" + device.name,
                 WireRestShape=wire_rest_shape,
-                radius=device.sofa_device.radius,
                 printLog=False,
             )
             instruments_combined.addObject(
                 "AdaptiveBeamForceFieldAndMass",
                 name="ForceField_" + device.name,
-                massDensity=device.sofa_device.mass_density,
                 interpolation="@Interpol_" + device.name,
             )
             x_tip.append(0.0)
@@ -350,7 +421,7 @@ class SofaBeamAdapter(Simulation):
 
         instruments_combined.addObject(
             "InterventionalRadiologyController",
-            name="m_ircontroller",
+            name="IRcontroller",
             template="Rigid3d",
             instruments=interpolations,
             startingPos=insertion_pose,
@@ -366,16 +437,18 @@ class SofaBeamAdapter(Simulation):
             "LinearSolverConstraintCorrection", wire_optimization="true", printLog=False
         )
         instruments_combined.addObject(
-            "FixedConstraint", indices=0, name="FixedConstraint"
+            "FixedProjectiveConstraint", indices=0, name="FixedConstraint"
         )
         instruments_combined.addObject(
             "RestShapeSpringsForceField",
-            points="@m_ircontroller.indexFirstNode",
+            name="deviceBaseSpring",
+            points="@IRcontroller.indexFirstNode",
             angularStiffness=1e8,
             stiffness=1e8,
             external_points=0,
             external_rest_shape="@DOFs",
         )
+
         self._instruments_combined = instruments_combined
 
         beam_collis = instruments_combined.addChild("CollisionModel")
@@ -385,7 +458,7 @@ class SofaBeamAdapter(Simulation):
         beam_collis.addObject("MechanicalObject", name="CollisionDOFs")
         beam_collis.addObject(
             "MultiAdaptiveBeamMapping",
-            controller="../m_ircontroller",
+            controller="../IRcontroller",
             useCurvAbs=True,
             printLog=False,
             name="collisMap",
@@ -436,7 +509,13 @@ class SofaBeamAdapter(Simulation):
         for device in devices:
             visu_node = self._instruments_combined.addChild("Visu_" + device.name)
             visu_node.activated = True
-            visu_node.addObject("MechanicalObject", name="Quads")
+            visu_node.addObject(
+                "OglModel",
+                color=device.color,
+                quads="@../Container_" + device.name + ".quads",
+                material="texture Ambient 1 0.2 0.2 0.2 0.0 Diffuse 1 1.0 1.0 1.0 1.0 Specular 1 1.0 1.0 1.0 1.0 Emissive 0 0.15 0.05 0.05 0.0 Shininess 1 20",
+                name="Visual",
+            )
             visu_node.addObject(
                 "QuadSetTopologyContainer", name="Container_" + device.name
             )
@@ -450,7 +529,7 @@ class SofaBeamAdapter(Simulation):
             visu_node.addObject(
                 "Edge2QuadTopologicalMapping",
                 nbPointsOnEachCircle=10,
-                radius=device.sofa_device.radius,
+                radius=device.tip_section.diameter_outer / 2,
                 flipNormals="true",
                 input=mesh_lines,
                 output="@Container_" + device.name,
@@ -459,25 +538,11 @@ class SofaBeamAdapter(Simulation):
                 "AdaptiveBeamMapping",
                 interpolation="@../Interpol_" + device.name,
                 name="VisuMap_" + device.name,
-                output="@Quads",
+                output="@Visual",
                 isMechanical="false",
                 input="@../DOFs",
                 useCurvAbs="1",
                 printLog="0",
-            )
-            visu_ogl = visu_node.addChild("VisuOgl")
-            visu_ogl.activated = True
-            visu_ogl.addObject(
-                "OglModel",
-                color=device.color,
-                quads="@../Container_" + device.name + ".quads",
-                material="texture Ambient 1 0.2 0.2 0.2 0.0 Diffuse 1 1.0 1.0 1.0 1.0 Specular 1 1.0 1.0 1.0 1.0 Emissive 0 0.15 0.05 0.05 0.0 Shininess 1 20",
-                name="Visual",
-            )
-            visu_ogl.addObject(
-                "IdentityMapping",
-                input="@../Quads",
-                output="@Visual",
             )
 
         # Target
@@ -544,8 +609,6 @@ class SofaBeamAdapter(Simulation):
             self.interim_targets.append(interim_node)
 
         # Camera
-        # TODO: Find out how to manipulate background. BackgroundSetting doesn't seem to work
-        # self.root.addObject("BackgroundSetting", color=(0.5, 0.5, 0.5, 1.0))
         self.root.addObject("DefaultVisualManagerLoop")
         self.root.addObject(
             "VisualStyle",
@@ -569,9 +632,9 @@ class SofaBeamAdapter(Simulation):
         z_clipping_coeff = 5
         z_near_coeff = 0.01
         z_near = dist_cam_to_center - scene_radius
-        z_far = (z_near + 2 * scene_radius) * 2
-        z_near = z_near * z_near_coeff
-        z_min = z_near_coeff * z_clipping_coeff * scene_radius
+        z_far = ((z_near + 2 * scene_radius) * 2).tolist()
+        z_near = (z_near * z_near_coeff).tolist()
+        z_min = (z_near_coeff * z_clipping_coeff * scene_radius).tolist()
         if z_near < z_min:
             z_near = z_min
         field_of_view = 70
@@ -610,7 +673,7 @@ class SofaBeamAdapter(Simulation):
     @staticmethod
     def _calculate_insertion_pose(
         insertion_point: np.ndarray, insertion_direction: np.ndarray
-    ):
+    ) -> List[float]:
         insertion_direction = insertion_direction / np.linalg.norm(insertion_direction)
         original_direction = np.array([1.0, 0.0, 0.0])
         if np.all(insertion_direction == original_direction):
@@ -625,6 +688,6 @@ class SofaBeamAdapter(Simulation):
             )
             w0 = np.dot(original_direction, half)
             xyz0 = np.cross(original_direction, half)
-        xyz0 = list(xyz0)
-        pose = list(insertion_point) + list(xyz0) + [w0]
+        xyz0 = list(map(float, xyz0))
+        pose = list(map(float, insertion_point)) + xyz0 + [float(w0)]
         return pose
