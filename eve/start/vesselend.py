@@ -16,4 +16,4 @@ class VesselEnd(Start):
             self.intervention.fluoroscopy.image_center,
         )
         if at_tree_end(tip_vessel_cs, self.intervention.vessel_tree):
-            self.intervention.simulation.reset_devices()
+            self.intervention.reset_devices()

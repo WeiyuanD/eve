@@ -10,4 +10,4 @@ class MaxDeviceLength(Start):
 
     def reset(self, episode_nr: int = 0) -> None:
         if np.any(self.intervention.device_lengths_inserted > self.max_length):
-            self.intervention.simulation.reset_devices()
+            self.intervention.reset_devices()
