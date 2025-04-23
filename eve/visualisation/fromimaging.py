@@ -14,12 +14,7 @@ class FromImaging(Visualisation):
         self._matplotlib.use("TkAgg")
         self._plt = importlib.import_module("matplotlib.pyplot")
 
-        self.fig, self.ax = self._plt.subplots()
-        # self.ax.set_aspect("equal")
-        # self.ax.set_axis_off()
-        self.fig.canvas.draw()
-
-        self._plt.pause(0.1)
+        self.fig, self.ax = None, None
 
     def render(self):
         self.ax.clear()
@@ -32,4 +27,9 @@ class FromImaging(Visualisation):
         self._plt.close(self.fig)
 
     def reset(self, episode_nr: int = 0) -> None:
-        ...
+        self.fig, self.ax = self._plt.subplots()
+        # self.ax.set_aspect("equal")
+        # self.ax.set_axis_off()
+        self.fig.canvas.draw()
+
+        self._plt.pause(0.01)
