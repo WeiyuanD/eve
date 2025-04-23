@@ -51,6 +51,7 @@ class SofaBeamAdapter(Simulation):
         self._dof_positions = None
         self._inserted_lengths = None
         self._rotations = None
+        self._instruments = None
 
     @property
     def dof_positions(self) -> np.ndarray:
@@ -63,6 +64,10 @@ class SofaBeamAdapter(Simulation):
     @property
     def rotations(self) -> List[float]:
         return self._rotations
+
+    @property
+    def instruments(self) -> List[Instrument]:
+        return self._instruments
 
     def quaternion_rotation_angle(self, q1, q2):
         dot_product = np.dot(q1, q2)
@@ -139,6 +144,7 @@ class SofaBeamAdapter(Simulation):
             or vessel_visual_path != self._vessel_visual_path
             or np.any(coords_high != self._coords_high)
             or np.any(coords_low != self._coords_low)
+            or np.any(self._instruments != instruments)
             # or self.init_visual_nodes
         ):
             if self.root is None:
@@ -173,6 +179,7 @@ class SofaBeamAdapter(Simulation):
             self._coords_high = coords_high
             self._coords_low = coords_low
             self._vessel_visual_path = vessel_visual_path
+            self._instruments = instruments
             self.simulation_error = False
             self.logger.debug("Sofa Initialized")
         self._update_properties()

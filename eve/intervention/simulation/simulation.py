@@ -21,6 +21,10 @@ class Simulation(EveObject, ABC):
     @abstractmethod
     def rotations(self) -> List[float]: ...
 
+    @property
+    @abstractmethod
+    def instruments(self) -> List[Instrument]: ...
+
     @abstractmethod
     def close(self): ...
 
