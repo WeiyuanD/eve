@@ -2,22 +2,29 @@ from typing import Dict, List, Optional, Tuple
 from PIL import Image, ImageDraw, ImageChops
 import numpy as np
 import gymnasium as gym
-from .fluoroscopy import SimulatedFluoroscopy
+from .trackingonly import TrackingOnly
 from ..simulation import Simulation
+from ..vesseltree import VesselTree
 
 
-class Pillow(SimulatedFluoroscopy):
+class Pillow(TrackingOnly):
     def __init__(
         self,
-        image_size: Tuple[int, int],
         simulation: Simulation,
+        vessel_tree: VesselTree,
         image_frequency: float = 7.5,
         image_rot_zx: Tuple[float, float] = (0.0, 0.0),
         image_center: Optional[Tuple[float, float, float]] = None,
         field_of_view: Optional[Tuple[float, float]] = None,
+        image_size: Tuple[int, int] = (500, 500),
     ) -> None:
         super().__init__(
-            simulation, image_frequency, image_rot_zx, image_center, field_of_view
+            simulation=simulation,
+            vessel_tree=vessel_tree,
+            image_frequency=image_frequency,
+            image_rot_zx=image_rot_zx,
+            image_center=image_center,
+            field_of_view=field_of_view,
         )
         if isinstance(image_size, int):
             image_size = (image_size, image_size)
@@ -42,7 +49,10 @@ class Pillow(SimulatedFluoroscopy):
 
     def step(self):
         trackings = self.instrument_trackings2d
-        diameters = [instrument.diameter for instrument in self.simulation.]
+        diameters = [
+            instrument.tip_section.diameter_outer
+            for instrument in self.simulation.instruments
+        ]
         # Noise is around colour 128.
         noise_image = Image.effect_noise(size=self.image_size, sigma=5)
         physics_image = self._render(trackings, diameters)
