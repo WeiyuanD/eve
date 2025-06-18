@@ -11,12 +11,18 @@ def delete_lines(n=1):
         print("\033[1A\x1b[2K", end="")
 
 
-# Define Intervention
-vessel_tree = eve.intervention.vesseltree.AorticArch(
-    seed=30,
-    scaling_xyzd=[1.0, 1.0, 1.0, 0.75],
-)
+# # Define Intervention
+# vessel_tree = eve.intervention.vesseltree.AorticArch(
+#     seed=30,
+#     scaling_xyzd=[1.0, 1.0, 1.0, 0.75],
+# )
 
+# WD:
+vessel_tree = eve.intervention.vesseltree.AorticArchRandom(
+    episodes_between_change=1,
+    scale_diameter_array=[0.85],
+    arch_types_filter=[eve.intervention.vesseltree.ArchType.I],
+    )
 
 instrument = eve.intervention.instrument.Angled()
 

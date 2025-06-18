@@ -2,6 +2,8 @@ import importlib
 
 from ..intervention import Intervention
 from .visualisation import Visualisation
+import PIL.Image
+import numpy as np
 
 
 class FromImaging(Visualisation):
