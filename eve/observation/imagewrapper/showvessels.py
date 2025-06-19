@@ -33,8 +33,11 @@ class ShowVessels(ImageState):
         # WD:
         img1 = Image.fromarray(self.wrapped_image.image)
         img2 = Image.fromarray(self._overlay_image)
-        self.image = ImageChops.blend(
-            img1, img2, 0.5
+        # self.image = ImageChops.blend(
+        #     img1, img2, 0.3
+        # )
+        self.image = ImageChops.darker(
+            img1, img2
         )
         image_obs = np.array(self.image, dtype=np.float32)
         # image_obs = np.expand_dims(image_obs.reshape((64, 64)), axis=0)
@@ -50,40 +53,43 @@ class ShowVessels(ImageState):
         img1 = Image.fromarray(self.wrapped_image.image)
         img2 = Image.fromarray(self._overlay_image)
         print('============CHECK===========: ', img1.size, img2.size)
-        self.image = ImageChops.blend(
-            img1, img2, 0.5
+        # self.image = ImageChops.blend(
+        #     img1, img2, 0.3
+        # )
+        self.image = ImageChops.darker(
+            img1, img2
         )
         image_obs = np.array(self.image, dtype=np.float32)
         # image_obs = np.expand_dims(image_obs.reshape((64, 64)), axis=0) 
         self.obs = np.array(image_obs)
 
-    def _create_overlay_image(self):
-        # self._overlay_image = self.intervention.fluoroscopy.get_new_image(color=255)
-        self._overlay_image = self.intervention.fluoroscopy.image
-        self.target = self.intervention.target.coordinates3d
-        for branch in self.intervention.vessel_tree.branches:
-            for coord, radius in zip(branch.coordinates, branch.radii):
-                self._overlay_image = self.intervention.fluoroscopy._draw_circle(
-                    self._overlay_image, coord, radius, 170
-                )
-        # draw target
-        self._overlay_image = self.intervention.fluoroscopy.draw_target(
-            self._overlay_image, self.target, 4, 255
-        )
-    
     # def _create_overlay_image(self):
-    #     self._overlay_image = np.array(Image.new('L', (512, 512), color=128))
+    #     # self._overlay_image = self.intervention.fluoroscopy.get_new_image(color=255)
+    #     self._overlay_image = self.intervention.fluoroscopy.image
+    #     self.target = self.intervention.target.coordinates3d
     #     for branch in self.intervention.vessel_tree.branches:
     #         for coord, radius in zip(branch.coordinates, branch.radii):
     #             self._overlay_image = self.intervention.fluoroscopy._draw_circle(
     #                 self._overlay_image, coord, radius, 170
     #             )
-    #     self._overlay_image = Image.fromarray(self._overlay_image.astype(np.uint8))
-    #     self._overlay_image = self._overlay_image.resize((96, 96), resample=Image.Resampling.LANCZOS)
-
     #     # draw target
-    #     self.target = self.intervention.target.coordinates3d
     #     self._overlay_image = self.intervention.fluoroscopy.draw_target(
-    #         np.array(self._overlay_image), self.target, 6, 255
+    #         self._overlay_image, self.target, 4, 255
     #     )
-    #     print(np.array(self._overlay_image).shape)
+    
+    def _create_overlay_image(self):
+        self._overlay_image = np.array(Image.new('L', (512, 512), color=255))
+        for branch in self.intervention.vessel_tree.branches:
+            for coord, radius in zip(branch.coordinates, branch.radii):
+                self._overlay_image = self.intervention.fluoroscopy._draw_circle(
+                    self._overlay_image, coord, radius, 150
+                )
+        self._overlay_image = Image.fromarray(self._overlay_image.astype(np.uint8))
+        self._overlay_image = self._overlay_image.resize((96, 96), resample=Image.Resampling.LANCZOS)
+
+        # draw target
+        self.target = self.intervention.target.coordinates3d
+        self._overlay_image = self.intervention.fluoroscopy.draw_target(
+            np.array(self._overlay_image), self.target, 6, 0
+        )
+        print(np.array(self._overlay_image).shape)

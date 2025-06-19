@@ -21,8 +21,8 @@ class Pillow(TrackingOnly):
         image_rot_zx: Tuple[float, float] = (0.0, 0.0),
         image_center: Optional[Tuple[float, float, float]] = None,
         field_of_view: Optional[Tuple[float, float]] = None,
-        # image_size: Tuple[int, int] = (96, 96),
-        image_size: Tuple[int, int] = (64, 64),
+        image_size: Tuple[int, int] = (96, 96),
+        # image_size: Tuple[int, int] = (64, 64), # v1
         image_size_vessel: Tuple[int, int] = (512, 512),
 
     ) -> None:
@@ -71,10 +71,12 @@ class Pillow(TrackingOnly):
             for instrument in self.simulation.instruments
         ]
         # Noise is around colour 128.
-        noise_image = Image.effect_noise(size=self.image_size, sigma=0.3)
+        # noise_image = Image.effect_noise(size=self.image_size, sigma=0.3)
+        # canvas_image = Image.new('L', size=self.image_size, color=0)
         physics_image = self._render(trackings, diameters)
-        image = ImageChops.darker(physics_image, noise_image)
-        self._image = np.asarray(image, dtype=np.uint8)
+        # image = ImageChops.darker(physics_image, noise_image)
+        # self._image = np.asarray(image, dtype=np.uint8)
+        self._image = np.asarray(physics_image, dtype=np.uint8)
 
 
     def reset(self, episode_nr: int = 0) -> None:
@@ -149,10 +151,10 @@ class Pillow(TrackingOnly):
         position = tracking3d_to_2d(position)
         position = position.reshape(1, -1)  # Shape: (1, 2)
 
-        # position = self._coord_transform_tracking_to_image(position, is_vessel=True)
-        position = self._coord_transform_tracking_to_image(position)
-        radius *= self._tracking_to_image_factor
-        # radius *= self._tracking_to_image_factor_vessel
+        position = self._coord_transform_tracking_to_image(position, is_vessel=True) # v2
+        # position = self._coord_transform_tracking_to_image(position) # v1
+        # radius *= self._tracking_to_image_factor # v1
+        radius *= self._tracking_to_image_factor_vessel # v2
         circle_bb_low = (coord - radius for coord in position)
         circle_bb_high = (coord + radius for coord in position)
         # draw.ellipse([circle_bb_low, circle_bb_high], fill=grey_value)
@@ -171,39 +173,39 @@ class Pillow(TrackingOnly):
         grey_value=0,
     ) -> np.ndarray:
         draw = ImageDraw.Draw(image)
-        # point_cloud_image = self._coord_transform_tracking_to_image(point_cloud, is_vessel=False)
-        point_cloud_image = self._coord_transform_tracking_to_image(point_cloud)
+        point_cloud_image = self._coord_transform_tracking_to_image(point_cloud, is_vessel=False) #v2
+        # point_cloud_image = self._coord_transform_tracking_to_image(point_cloud) # v1
         draw.line(point_cloud_image, fill=grey_value, width=width, joint="curve")
         return np.asarray(image)
 
-
-    def _coord_transform_tracking_to_image(
-        self, coords: np.ndarray
-    ) -> List[Tuple[float, float]]:
-        coords_image = (coords + self._tracking_offset) * self._tracking_to_image_factor
-        coords_image += self._image_offset
-        coords_image = np.round(coords_image, decimals=0).astype(np.int64)
-        coords_image[:, 1] = -coords_image[:, 1] + self.image_size[1]
-        coords_image = [(coord[0], coord[1]) for coord in coords_image]
-        return coords_image
-
-    # WD:
+    # v1
     # def _coord_transform_tracking_to_image(
-    #     self, coords: np.ndarray, is_vessel: bool
+    #     self, coords: np.ndarray
     # ) -> List[Tuple[float, float]]:
-    #     if is_vessel:
-    #         coords_image = (coords + self._tracking_offset) * self._tracking_to_image_factor_vessel
-    #         coords_image += self._image_offset_vessel
-    #         coords_image = np.round(coords_image, decimals=0).astype(np.int64)
-    #         coords_image[:, 1] = -coords_image[:, 1] + self.image_size_vessel[1]
-    #     else:
-    #         coords_image = (coords + self._tracking_offset) * self._tracking_to_image_factor
-    #         coords_image += self._image_offset
-    #         coords_image = np.round(coords_image, decimals=0).astype(np.int64)
-    #         coords_image[:, 1] = -coords_image[:, 1] + self.image_size[1]
-
+    #     coords_image = (coords + self._tracking_offset) * self._tracking_to_image_factor
+    #     coords_image += self._image_offset
+    #     coords_image = np.round(coords_image, decimals=0).astype(np.int64)
+    #     coords_image[:, 1] = -coords_image[:, 1] + self.image_size[1]
     #     coords_image = [(coord[0], coord[1]) for coord in coords_image]
     #     return coords_image
+
+    # WD: v2
+    def _coord_transform_tracking_to_image(
+        self, coords: np.ndarray, is_vessel: bool
+    ) -> List[Tuple[float, float]]:
+        if is_vessel:
+            coords_image = (coords + self._tracking_offset) * self._tracking_to_image_factor_vessel
+            coords_image += self._image_offset_vessel
+            coords_image = np.round(coords_image, decimals=0).astype(np.int64)
+            coords_image[:, 1] = -coords_image[:, 1] + self.image_size_vessel[1]
+        else:
+            coords_image = (coords + self._tracking_offset) * self._tracking_to_image_factor
+            coords_image += self._image_offset
+            coords_image = np.round(coords_image, decimals=0).astype(np.int64)
+            coords_image[:, 1] = -coords_image[:, 1] + self.image_size[1]
+
+        coords_image = [(coord[0], coord[1]) for coord in coords_image]
+        return coords_image
 
     def draw_target(
         self,
@@ -228,8 +230,8 @@ class Pillow(TrackingOnly):
         # )
         position = tracking3d_to_2d(position)
         position = position.reshape(1, -1)  # Shape: (1, 2)
-        # position = self._coord_transform_tracking_to_image(position, is_vessel=False)
-        position = self._coord_transform_tracking_to_image(position)
+        position = self._coord_transform_tracking_to_image(position, is_vessel=False) # v2
+        # position = self._coord_transform_tracking_to_image(position) # v1
         radius *= self._tracking_to_image_factor
         circle_bb_low = (coord - radius for coord in position)
         circle_bb_high = (coord + radius for coord in position)

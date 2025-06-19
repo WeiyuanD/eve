@@ -198,7 +198,7 @@ for _ in range(12):
         # img = soft_sdf(img)
         # img = lanczo(img)
 
-        img = crop_vessel(img)
+        # img = crop_vessel(img)
         render_full(img)
         
         # print(img.shape, img.min(), img.max())
