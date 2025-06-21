@@ -52,7 +52,7 @@ class ShowVessels(ImageState):
         # wD:
         img1 = Image.fromarray(self.wrapped_image.image)
         img2 = Image.fromarray(self._overlay_image)
-        print('===============CHECK 0===============: ', img1.size, img2.size)
+        print('===============CHECK 0: reset image===============: ', img1.size, img2.size)
         # self.image = ImageChops.blend(
         #     img1, img2, 0.3
         # )
@@ -92,4 +92,4 @@ class ShowVessels(ImageState):
         self._overlay_image = self.intervention.fluoroscopy.draw_target(
             np.array(self._overlay_image), self.target, 6, 0
         )
-        print('===========CHECK 1==============', np.array(self._overlay_image).shape)
+        print('===========CHECK 1: created overlay image==============: ', np.array(self._overlay_image).shape)
