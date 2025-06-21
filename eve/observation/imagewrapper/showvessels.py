@@ -39,6 +39,7 @@ class ShowVessels(ImageState):
         self.image = ImageChops.darker(
             img1, img2
         )
+        print('=====================CHECK 1================: ', img1.size, img2.size)
         image_obs = np.array(self.image, dtype=np.float32)
         # image_obs = np.expand_dims(image_obs.reshape((64, 64)), axis=0)
         self.obs = np.array(image_obs)
